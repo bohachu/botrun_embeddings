@@ -1,3 +1,4 @@
+# from botrun_embeddings import *
 import glob
 import heapq
 import os
@@ -6,23 +7,7 @@ import torch
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
-
-class LazySentenceTransformer:
-    def __init__(self, model_name):
-        self.model_name = model_name
-        self._model = None
-
-    @property
-    def model(self):
-        if self._model is None:
-            self._model = SentenceTransformer(self.model_name)
-        return self._model
-
-    def encode(self, *args, **kwargs):
-        return self.model.encode(*args, **kwargs)
-
-
-sentence_transformer = LazySentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+sentence_transformer = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
 
 
 def encode_file(file_path, model=sentence_transformer):
@@ -34,27 +19,12 @@ def encode_file(file_path, model=sentence_transformer):
 
 def create_embeddings(input_folder):
     txt_files = glob.glob(os.path.join(input_folder, '**/*_page_*.txt'), recursive=True)
-
-    processed_folders = set()
-
-    for txt_file in sorted(txt_files, key=lambda x: os.path.dirname(x)):
+    for txt_file in txt_files:
         current_folder = os.path.dirname(txt_file)
-        if current_folder in processed_folders:
-            continue
-
-        page_1_pt_files = glob.glob(os.path.join(current_folder, '*_page_1.pt'))
-        if page_1_pt_files:
-            print(f"Embeddings for page 1 in folder {current_folder} already exist, skipping the whole folder...")
-            processed_folders.add(current_folder)
-            continue
-
         file_base_name = os.path.splitext(os.path.basename(txt_file))[0]
         embeddings_file = os.path.join(current_folder, f"{file_base_name}.pt")
-
         if os.path.exists(embeddings_file):
-            print(f"Embeddings for {txt_file} already exist, skipping...")
             continue
-
         embeddings = encode_file(txt_file, sentence_transformer)
         torch.save(embeddings, embeddings_file)
 

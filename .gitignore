@@ -1,2 +1,3 @@
 botrun-embeddings-*
 setup.py
+.env

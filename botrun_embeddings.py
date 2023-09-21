@@ -4,6 +4,7 @@ import heapq
 import os
 
 import torch
+from call_openai_gpt import call_openai_gpt
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -50,10 +51,30 @@ def find_similar_files(query, folder_path, top_k=5):
         with open(file_path.replace('.pt', '.txt'), 'r') as f:
             result_str += f"Content: {f.read()}\n"
         results.append(result_str)
-
     return '\n'.join(results)
 
 
+def generate_prompt(similar_files_str: str, question: str) -> str:
+    """
+    Generates a prompt for the OpenAI GPT model based on provided similar files and a question.
+    """
+    prompt = f'''
+    ### 知識庫內容:
+        {similar_files_str}
+    ### 回答時注意:
+        須附註顯示引用了哪些文件名稱的哪些頁數(可精確指出上半部或下半部)
+    ### 使用者提問:{question}
+    '''
+    return prompt
+
+
 if __name__ == '__main__':
-    create_embeddings('users/cbh_cameo_tw/data')
-    print(find_similar_files("主管的性別統計資料", 'users/cbh_cameo_tw/data', top_k=5))
+    # create_embeddings('users/cbh_cameo_tw/data')
+    base_path = '''./users/ruyuhuang0114_gmail_com/data/upload_files/pdf_folder 異位性皮膚炎論文 醫護波特人 知識庫 pdf 醫護波特人 sop/ru 醫護 sop 文件問答/癌症品質/毒性反應/06_癌症病人口腔黏膜炎照護規範(V8)--20220525'''
+    question = '''請問 NCI-CTCAE V5.0 版中的口腔黏膜炎程度之分級，知識庫原文是什麼？'''
+    top_k = 5
+    model = 'gpt-3.5-turbo-16k'
+    similar_files_str = find_similar_files(question, base_path, top_k=top_k)
+    print('similar_files_str', similar_files_str)
+    prompt = generate_prompt(similar_files_str, question)
+    print('call_openai_gpt', call_openai_gpt(prompt, model=model))
